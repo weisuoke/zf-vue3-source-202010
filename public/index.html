@@ -12,7 +12,7 @@
         const vm = new Vue({    // vue2 options Api
           data() {
             return {
-              name: 'zf'
+              arr: [{a: 1}] // vue中数组中的对象，如果变化了，也需要更新视图
             }
           },
           methods: {
@@ -25,6 +25,8 @@
 
           }
         });
+
+        vm.arr.push(4)
     </script>
 </body>
 </html>

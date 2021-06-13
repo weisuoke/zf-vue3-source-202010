@@ -1,4 +1,4 @@
-import { observe } from "./observer";
+import { observe } from "./observer/index";
 
 // vue的数据 data computed watch
 export function initState(vm) {

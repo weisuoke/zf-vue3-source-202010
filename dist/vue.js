@@ -42,15 +42,53 @@
     return Constructor;
   }
 
+  var oldArrayProtoMethods = Array.prototype; // 不能直接改写数组原有的方法 不可靠，因为只有被 vue 控制的数组才需要改写
+
+  var arrayMethods = Object.create(Array.prototype);
+  var methods = ['push', 'pop', 'shift', 'unshift', 'splice', 'reverse', 'sort'];
+  methods.forEach(function (method) {
+    // AOP 切片编程
+    arrayMethods[method] = function () {
+      var _oldArrayProtoMethods;
+
+      // 重写数组方法
+      console.log('数组变化'); // todo...
+
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+
+      var result = (_oldArrayProtoMethods = oldArrayProtoMethods[method]).call.apply(_oldArrayProtoMethods, [this].concat(args));
+
+      return result;
+    };
+  });
+
   var Observer = /*#__PURE__*/function () {
     function Observer(value) {
       _classCallCheck(this, Observer);
 
       // 需要对这个value属性重新定义
-      this.walk(value);
+      // value 可能是对象 可能是数组，分类处理
+      if (Array.isArray(value)) {
+        // 数组不用 defineProperty 来进行代理，性能不好
+        // push shift reverse sort 我要重写这些方法增加更新逻辑
+        Object.setPrototypeOf(value, arrayMethods); // 循环将属性赋予上去
+
+        this.observeArray(value); // 原有数组中的对象
+      } else {
+        this.walk(value);
+      }
     }
 
     _createClass(Observer, [{
+      key: "observeArray",
+      value: function observeArray(value) {
+        for (var i = 0; i < value.length; i++) {
+          observe(value[i]);
+        }
+      }
+    }, {
       key: "walk",
       value: function walk(data) {
         // 将对象中的所有 key 重新用 defineProperty 定义成响应式的
@@ -64,12 +102,18 @@
   }();
 
   function defineReactive(data, key, value) {
+    // vue2 中数据嵌套不要过深，过深浪费性能
+    // value 可能也是一个对象
+    observe(value); // 对结果递归拦截
+
     Object.defineProperty(data, key, {
       get: function get() {
         return value;
       },
       set: function set(newValue) {
         if (newValue === value) return;
+        observe(newValue); // 如果用户设置的是一个对象，就继续将用户设置的对象变成响应式的
+
         value = newValue;
       }
     });
