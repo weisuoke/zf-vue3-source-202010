@@ -4,6 +4,11 @@ class Observer {
   constructor(value) { // 需要对这个value属性重新定义
 
     // value 可能是对象 可能是数组，分类处理
+    Object.defineProperty(value, '__ob__', {
+      value: this,
+      enumerable: false,  // 不能被枚举表示，不能被循环
+      configurable: false,  // 不能删除此属性
+    })
     if (Array.isArray(value)) {
       // 数组不用 defineProperty 来进行代理，性能不好
 
@@ -47,6 +52,10 @@ export function observe(data) {
   // 只对对象类型进行观测 非对象类型无法观测
   if (typeof data !== 'object' || data === null) {
     return;
+  }
+
+  if (data.__ob__) {  // 防止循环引用了
+    return
   }
   // 通过类来实现对数据的观测 类可以方便扩展，会产生实例
   return new Observer(data)

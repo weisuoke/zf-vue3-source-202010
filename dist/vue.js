@@ -51,15 +51,30 @@
     arrayMethods[method] = function () {
       var _oldArrayProtoMethods;
 
-      // 重写数组方法
-      console.log('数组变化'); // todo...
-
       for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
         args[_key] = arguments[_key];
       }
 
+      // 重写数组方法
+      // todo...
+      // 有可能用户新增的数据是对象格式，也需要进行拦截
       var result = (_oldArrayProtoMethods = oldArrayProtoMethods[method]).call.apply(_oldArrayProtoMethods, [this].concat(args));
 
+      var inserted;
+      var ob = this.__ob__;
+
+      switch (method) {
+        case 'push':
+        case 'unshift':
+          inserted = args;
+          break;
+
+        case 'splice':
+          inserted = args.slice(2);
+          break;
+      }
+
+      if (inserted) ob.observeArray(inserted);
       return result;
     };
   });
@@ -70,6 +85,14 @@
 
       // 需要对这个value属性重新定义
       // value 可能是对象 可能是数组，分类处理
+      Object.defineProperty(value, '__ob__', {
+        value: this,
+        enumerable: false,
+        // 不能被枚举表示，不能被循环
+        configurable: false // 不能删除此属性
+
+      });
+
       if (Array.isArray(value)) {
         // 数组不用 defineProperty 来进行代理，性能不好
         // push shift reverse sort 我要重写这些方法增加更新逻辑
@@ -121,6 +144,11 @@
   function observe(data) {
     // 只对对象类型进行观测 非对象类型无法观测
     if (_typeof(data) !== 'object' || data === null) {
+      return;
+    }
+
+    if (data.__ob__) {
+      // 防止循环引用了
       return;
     } // 通过类来实现对数据的观测 类可以方便扩展，会产生实例
 
