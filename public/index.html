@@ -7,12 +7,28 @@
 </head>
 <body>
     <script src="/dist/vue.js"></script>
+    <!--
+        模板编译原理 AST 语法树（树的遍历），先标识出 html => js 语法
+        1. 需要将模板变成一个 render 方法， render() { return c('li', {}, name) }
+        2. 需要去当前的实例上取值 with
+        3. 虚拟DOM => 对象, 可以描述 DOM 结构（diff 算法）
+        4. 要生成一个真实的 DOM 结构扔到页面中
+    -->
+    <div id="app">
+        <ul>
+            <li>{{name}}</li>
+            <li>{{age}}</li>
+        </ul>
+    </div>
     <script>
         // 响应式数据变化，数据代理， Object.defineProperty (Vue2)
         const vm = new Vue({    // vue2 options Api
+          el: '#app',
           data() {
             return {
-              arr: [{a: 1}] // vue中数组中的对象，如果变化了，也需要更新视图
+              arr: [{a: 1}], // vue中数组中的对象，如果变化了，也需要更新视图
+              name: 'wx',
+              age: 10
             }
           },
           methods: {
