@@ -14,11 +14,10 @@
         3. 虚拟DOM => 对象, 可以描述 DOM 结构（diff 算法）
         4. 要生成一个真实的 DOM 结构扔到页面中
     -->
-    <div id="app">
-        <ul>
-            <li>{{name}}</li>
-            <li>{{age}}</li>
-        </ul>
+    <div id="app" a="1" b="2">
+        <div style="color: red">
+            <span>{{name}}</span>
+        </div>
     </div>
     <script>
         // 响应式数据变化，数据代理， Object.defineProperty (Vue2)

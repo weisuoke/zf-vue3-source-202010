@@ -1,4 +1,5 @@
 import { initState } from "./state";
+import { compileToFunctions } from "./compiler/index";
 
 export function initMixin(Vue) {
   Vue.prototype._init = function(options) {
@@ -27,7 +28,7 @@ export function initMixin(Vue) {
       }
       console.log(template)
       // 如何将模板编译成 render 函数
-      // const render = compileToFunctions(template)
+      const render = compileToFunctions(template)
       // options.render = render
     }
   }

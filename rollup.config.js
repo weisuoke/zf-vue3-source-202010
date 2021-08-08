@@ -16,7 +16,7 @@ export default { // 用于打包
     serve({
       open: true,
       openPage: '/public/index.html',
-      port: 3000,
+      port: 3003,
       contentBase: ''
     })
   ]

@@ -192,6 +192,147 @@
     observe(data);
   }
 
+  var ncname = "[a-zA-Z_][\\-\\.0-9_a-zA-Z]*";
+  var qnameCapture = "((?:".concat(ncname, "\\:)?").concat(ncname, ")");
+  var startTagOpen = new RegExp("^<".concat(qnameCapture)); // 标签开头的正则 捕获的内容是标签名
+
+  var endTag = new RegExp("^<\\/".concat(qnameCapture, "[^>]*>")); // 匹配标签结尾的 </div>
+
+  var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/; // 匹配属性的
+
+  var startTagClose = /^\s*(\/?)>/; // 匹配标签结束的 >
+  function parseHTML(html) {
+    var root = null;
+    var currentParent;
+    var stack = [];
+
+    function createASTElement(tagName, attrs) {
+      // vue3 里面支持多个根元素（外层加了一个空元素）， vue2 中只支持一个根节点
+      return {
+        tag: tagName,
+        type: 1,
+        children: [],
+        attrs: attrs,
+        parent: null
+      };
+    } // 根据开始标签 结束标签 文本内容 生成一个 ast 语法树
+
+
+    function start(tagName, attrs) {
+      var element = createASTElement(tagName, attrs);
+
+      if (!root) {
+        root = element;
+      }
+
+      currentParent = element;
+      stack.push(element);
+    }
+
+    function end(tagName) {
+      var element = stack.pop();
+      currentParent = stack[stack.length - 1];
+
+      if (currentParent) {
+        element.parent = currentParent;
+        currentParent.children.push(element);
+      }
+    }
+
+    function chars(text) {
+      // 解析文本
+      text = text.replace(/\s/g, '');
+
+      if (text) {
+        currentParent.children.push({
+          type: 3,
+          text: text
+        });
+      }
+    }
+
+    function advance(n) {
+      html = html.substring(n);
+    }
+
+    function parseStartTag() {
+      var start = html.match(startTagOpen);
+
+      if (start) {
+        var match = {
+          tagName: start[1],
+          attrs: []
+        };
+        advance(start[0].length); // 获取元素
+        // 查找属性
+
+        var _end, attr; // 不是开头标签结尾就一直解析
+
+
+        while (!(_end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+          advance(attr[0].length);
+          match.attrs.push({
+            name: attr[1],
+            value: attr[3]
+          });
+        }
+
+        if (_end) {
+          advance(_end[0].length);
+          return match;
+        }
+      }
+    }
+
+    while (html) {
+      var textEnd = html.indexOf('<');
+
+      if (textEnd === 0) {
+        var startTagMatch = parseStartTag();
+
+        if (startTagMatch) {
+          // 开始标签
+          start(startTagMatch.tagName, startTagMatch.attrs);
+          continue;
+        } // 结束标签
+
+
+        var endTagMatch = html.match(endTag);
+
+        if (endTagMatch) {
+          console.log("结尾：", endTagMatch[1]);
+          advance(endTagMatch[0].length);
+          end(endTagMatch[1]);
+          continue;
+        }
+      }
+
+      var text = void 0;
+
+      if (textEnd >= 0) {
+        // 开始解析文本
+        text = html.substring(0, textEnd);
+      }
+
+      if (text) {
+        advance(text.length);
+        chars(text);
+      }
+    }
+
+    return root;
+  }
+
+  function generate(el) {
+    console.log(el); // 转化成 render 代码
+  }
+
+  function compileToFunctions(template) {
+    var ast = parseHTML(template); // root
+
+    generate(ast); // 生成代码
+  }
+
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
       var vm = this;
@@ -221,8 +362,8 @@
         }
 
         console.log(template); // 如何将模板编译成 render 函数
-        // const render = compileToFunctions(template)
-        // options.render = render
+
+        compileToFunctions(template); // options.render = render
       }
     };
   }
