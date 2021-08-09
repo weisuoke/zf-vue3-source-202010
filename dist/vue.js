@@ -483,6 +483,36 @@
     return fn; // render 函数已经 ok.
   }
 
+  var id = 0;
+
+  var Watcher = function Watcher(vm, fn, cb, options) {
+    _classCallCheck(this, Watcher);
+
+    this.vm = vm;
+    this.fn = fn;
+    this.cb = cb;
+    this.options = options;
+    this.id = id++;
+    this.fn(); // 调用传入的函数
+  };
+
+  function lifeCycleMixin(Vue) {
+    Vue.prototype._update = function (vnode) {
+      console.log('_update');
+    };
+  }
+  function mountComponent(vm, el) {
+    console.log(vm, el); // 默认 vue 是通过 watcher 来进行渲染 = 渲染watcher (每一个组件都有一个渲染 watcher)
+
+    var updateComponent = function updateComponent() {
+      // NOTE: vm._update, 把虚拟节点变成真实节点
+      vm._update(vm._render()); // 虚拟节点
+
+    };
+
+    new Watcher(vm, updateComponent, function () {}, true);
+  }
+
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
       var vm = this;
@@ -513,8 +543,67 @@
 
         console.log(template); // 如何将模板编译成 render 函数
 
-        compileToFunctions(template); // options.render = render
+        var render = compileToFunctions(template);
+        options.render = render;
       }
+
+      mountComponent(vm, el); // 组件挂载
+    };
+  }
+
+  function createElement(vm, tag) {
+    var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    for (var _len = arguments.length, children = new Array(_len > 3 ? _len - 3 : 0), _key = 3; _key < _len; _key++) {
+      children[_key - 3] = arguments[_key];
+    }
+
+    return vnode(vm, tag, data, data.key, children, undefined);
+  }
+  function createTextVnode(vm, text) {
+    return vnode(vm, undefined, undefined, undefined, undefined, text);
+  }
+
+  function vnode(vm, tag, data, key, children, text) {
+    return {
+      vm: vm,
+      tag: tag,
+      data: data,
+      key: key,
+      children: children,
+      text: text
+    };
+  }
+
+  function renderMixin(Vue) {
+    Vue.prototype._c = function () {
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+
+      // 创建元素的虚拟节点
+      return createElement.apply(void 0, [this].concat(args));
+    };
+
+    Vue.prototype._v = function (text) {
+      // 创建文本的虚拟节点
+      return createTextVnode(this, text);
+    };
+
+    Vue.prototype._s = function (val) {
+      // 转化成字符串
+      return val === null ? '' : _typeof(val) === 'object' ? JSON.stringify(val) : val;
+    };
+
+    Vue.prototype._render = function () {
+      // render
+      var vm = this;
+      var render = vm.$options.render; // 调用编译后的 render 方法
+      // 调用 render 方法产生虚拟节点
+
+      var vnode = render.call(vm); // _c(xxx, xxx, xxx, xxx) 调用时会自动将变量进行取值，将实例结果进行渲染
+
+      return vnode; // 虚拟节点
     };
   }
 
@@ -526,7 +615,11 @@
   } // 可以拆分逻辑到不同的文件中 更利于代码维护 模块化的概念
 
 
-  initMixin(Vue);
+  initMixin(Vue); // 扩展初始化方法
+
+  lifeCycleMixin(Vue); // 扩展 _update 方法
+
+  renderMixin(Vue); // 扩展 _render 方法
    // 库 => rollup 项目开发 webpack
 
   return Vue;
